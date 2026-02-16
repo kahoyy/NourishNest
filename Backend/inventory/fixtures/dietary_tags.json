@@ -1,0 +1,47 @@
+[
+  {
+    "model": "inventory.dietarytag",
+    "pk": 1,
+    "fields": {
+      "name": "Protein",
+      "description": "High protein foods",
+      "created_at": "2026-02-16T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.dietarytag",
+    "pk": 2,
+    "fields": {
+      "name": "Vegan",
+      "description": "Plant-based",
+      "created_at": "2026-02-16T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.dietarytag",
+    "pk": 3,
+    "fields": {
+      "name": "Gluten-Free",
+      "description": "No gluten",
+      "created_at": "2026-02-16T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.dietarytag",
+    "pk": 4,
+    "fields": {
+      "name": "Perishable",
+      "description": "Expires soon",
+      "created_at": "2026-02-16T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.dietarytag",
+    "pk": 5,
+    "fields": {
+      "name": "Green",
+      "description": "Sustainable choice",
+      "created_at": "2026-02-16T00:00:00Z"
+    }
+  }
+]

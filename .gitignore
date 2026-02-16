@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.coverage
+.pytest_cache/
+*.env
+*.env.local
+
+# Django
+*.log
+db.sqlite3
+/media/
+/staticfiles/
+.DS_Store
+
+# Node/Frontend
+node_modules/
+/Frontend/dist/
+/Frontend/.env.local
+npm-debug.log
+yarn-error.log
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+.vagrant
+.vagrant/
+
+# Project specific
+*.pyc
+.Python
+instance/
+migrations/*
+!migrations/__init__.py

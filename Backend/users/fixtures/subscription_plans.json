@@ -1,0 +1,41 @@
+[
+  {
+    "model": "users.subscriptionplan",
+    "pk": 1,
+    "fields": {
+      "name": "Free",
+      "features": ["Inventory", "Basic AI"],
+      "price": "0.00",
+      "description": "Starter plan",
+      "is_active": true,
+      "created_at": "2026-02-16T00:00:00Z",
+      "updated_at": "2026-02-16T00:00:00Z"
+    }
+  },
+  {
+    "model": "users.subscriptionplan",
+    "pk": 2,
+    "fields": {
+      "name": "Premium",
+      "features": ["Analytics", "Planner", "Higher limits"],
+      "price": "9.99",
+      "description": "Premium features",
+      "is_active": true,
+      "created_at": "2026-02-16T00:00:00Z",
+      "updated_at": "2026-02-16T00:00:00Z"
+    }
+  },
+  {
+    "model": "users.subscriptionplan",
+    "pk": 3,
+    "fields": {
+      "name": "Pro",
+      "features": ["All features", "Top limits"],
+      "price": "19.99",
+      "description": "Power user",
+      "is_active": true,
+      "created_at": "2026-02-16T00:00:00Z",
+      "updated_at": "2026-02-16T00:00:00Z"
+    }
+  }
+]
