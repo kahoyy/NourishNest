@@ -8,7 +8,6 @@ from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 from inventory.models import DietaryTag, InventoryItem
 from users.services import process_meal_rewards
 from .models import Recipe, RecipeFork, MealHistory, RecipeGenerationUsage
