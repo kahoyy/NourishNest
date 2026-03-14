@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Count, Avg
 from django.utils import timezone
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
@@ -10,8 +10,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from inventory.models import DietaryTag, InventoryItem
 from users.services import process_meal_rewards
-from .models import Recipe, RecipeFork, MealHistory, RecipeGenerationUsage
-from .serializers import (RecipeSerializer,RecipeListSerializer,RecipeGenerateSerializer,RecipeForkSerializer,RecipeForkCreateSerializer,MealHistorySerializer,MealHistoryCreateSerializer,)
+from .models import Recipe, RecipeFork, MealHistory, RecipeGenerationUsage, RecipeReview
+from .serializers import (RecipeSerializer,RecipeListSerializer,RecipeGenerateSerializer,RecipeForkSerializer,RecipeForkCreateSerializer,MealHistorySerializer,MealHistoryCreateSerializer,RecipeReviewSerializer)
 from .services import (generate_recipe_sync,calculate_match_score,get_banned_tags,apply_safe_filter,get_merged_health_profile,fork_recipe,)
 
 DAILY_GENERATION_LIMITS = getattr(settings, 'DAILY_GENERATION_LIMITS', {'free': 5,'premium': 50,'pro': 100,})
@@ -24,7 +24,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Recipe.objects.filter(Q(created_by=user) | Q(is_public=True)).distinct()
+        queryset = Recipe.objects.filter(Q(created_by=user) | Q(is_public=True)).annotate(
+            fork_count=Count('forks', distinct=True),
+            average_rating=Avg('reviews__rating'),
+            review_count=Count('reviews', distinct=True)
+        ).distinct()
 
         min_score = self.request.query_params.get('min_score')
         if min_score:
@@ -92,6 +96,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = self._create_recipe(result, request.user, match_score, tags_data)
 
         return Response(RecipeSerializer(recipe).data,status=status.HTTP_201_CREATED,)
+
+    @action(detail=False, methods=['get'])
+    def generation_usage(self, request):
+        today = timezone.now().date()
+        daily_limit = DAILY_GENERATION_LIMITS.get(
+            request.user.subscription_type, DEFAULT_DAILY_LIMIT
+        )
+        usage = RecipeGenerationUsage.objects.filter(
+            user=request.user, date=today
+        ).first()
+        used = usage.count if usage else 0
+        return Response({
+            'used': used,
+            'limit': daily_limit,
+            'remaining': max(daily_limit - used, 0),
+            'subscription_type': request.user.subscription_type,
+        })
 
     def _enforce_rate_limit(self, user):
         today = timezone.now().date()
@@ -169,6 +190,27 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response({'error': 'You have already forked this recipe','fork': RecipeForkSerializer(fork).data,},status=status.HTTP_400_BAD_REQUEST,)
 
         return Response(RecipeForkSerializer(fork).data,status=status.HTTP_201_CREATED,)
+
+    @action(detail=True, methods=['get', 'post'], permission_classes=[IsAuthenticated])
+    def reviews(self, request, pk=None):
+        recipe = self.get_object()
+        
+        if request.method == 'GET':
+            reviews = recipe.reviews.all().select_related('user')
+            serializer = RecipeReviewSerializer(reviews, many=True)
+            return Response(serializer.data)
+            
+        if recipe.created_by == request.user:
+            return Response({'error': 'You cannot review your own recipe'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = RecipeReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        if RecipeReview.objects.filter(recipe=recipe, user=request.user).exists():
+            return Response({'error': 'You have already reviewed this recipe'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        serializer.save(recipe=recipe, user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
     @transaction.atomic

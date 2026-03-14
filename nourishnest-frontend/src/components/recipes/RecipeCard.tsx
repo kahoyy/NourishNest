@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Clock, ChefHat } from 'lucide-react'
+import { Clock, ChefHat, GitFork, Star } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MatchScoreBadge } from './MatchScoreBadge'
@@ -31,6 +31,18 @@ export function RecipeCard({ recipe, linkPrefix = '/recipes' }: RecipeCardProps)
               <ChefHat className="h-3 w-3" />
               <span className="capitalize">{recipe.difficulty}</span>
             </span>
+            {recipe.fork_count > 0 && (
+              <span className="flex items-center gap-1">
+                <GitFork className="h-3 w-3" />
+                {recipe.fork_count}
+              </span>
+            )}
+            {recipe.average_rating > 0 && (
+              <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-500">
+                <Star className="h-3 w-3 fill-current" />
+                {recipe.average_rating.toFixed(1)} ({recipe.review_count})
+              </span>
+            )}
           </div>
           {recipe.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">

@@ -10,10 +10,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus } from 'lucide-react'
+import { Plus, AlertTriangle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { useGenerateRecipe } from '@/hooks/useRecipes'
+import { cn } from '@/lib/utils'
+import { useGenerateRecipe, useGenerationUsage } from '@/hooks/useRecipes'
 import { useInventoryItems, useCreateInventoryItem } from '@/hooks/useInventory'
 import { InventoryItemForm } from '@/components/inventory/InventoryItemForm'
 
@@ -35,6 +38,7 @@ export function GenerateRecipeForm() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const generateMutation = useGenerateRecipe()
   const createMutation = useCreateInventoryItem()
+  const { data: usageData } = useGenerationUsage()
   const { data: inventoryData } = useInventoryItems()
   const inventoryItems = inventoryData?.results ?? []
 
@@ -115,6 +119,52 @@ export function GenerateRecipeForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-xl">
+      {usageData && (() => {
+        const pct = (usageData.used / usageData.limit) * 100
+        const isWarning = pct >= 70 && pct < 100
+        const isAtLimit = usageData.remaining === 0
+        const planLabel: Record<string, string> = { free: 'Free', premium: 'Premium', pro: 'Pro' }
+
+        return (
+          <div className="rounded-lg border p-4 space-y-2 bg-muted/40">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {usageData.used} of {usageData.limit} generations used today
+              </span>
+              <Badge variant={isAtLimit ? 'destructive' : 'secondary'}>
+                {planLabel[usageData.subscription_type] ?? usageData.subscription_type} Plan
+              </Badge>
+            </div>
+            <Progress
+              value={pct}
+              className={cn(
+                'h-2',
+                isAtLimit ? '[&>div]:bg-destructive' :
+                isWarning  ? '[&>div]:bg-yellow-500'  :
+                             '[&>div]:bg-green-500'
+              )}
+            />
+            {(isWarning || isAtLimit) && (
+              <div className="flex items-center gap-2 text-xs">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-yellow-500" />
+                {isAtLimit ? (
+                  <span>
+                    Limit reached.{' '}
+                    <Link to="/subscription" className="underline font-medium">Upgrade your plan</Link>
+                    {' '}for more generations.
+                  </span>
+                ) : (
+                  <span>
+                    {usageData.remaining} generation{usageData.remaining !== 1 ? 's' : ''} left.{' '}
+                    <Link to="/subscription" className="underline font-medium">Upgrade</Link> for more.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Pantry toggle */}
       <div className="flex items-center gap-3">
         <Controller
@@ -260,8 +310,13 @@ export function GenerateRecipeForm() {
         />
       </div>
 
-      <Button type="submit" size="lg" className="w-full">
-        Generate Recipe
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={generateMutation.isPending || usageData?.remaining === 0}
+      >
+        {usageData?.remaining === 0 ? 'Generation Limit Reached' : 'Generate Recipe'}
       </Button>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

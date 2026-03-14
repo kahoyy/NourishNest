@@ -21,6 +21,10 @@ export interface Recipe {
   is_ai_generated: boolean
   is_public: boolean
   created_at: string
+  created_by: number
+  fork_count: number
+  average_rating: number
+  review_count: number
 }
 
 export interface RecipeFork {
@@ -75,4 +79,26 @@ export interface RecipeFilters {
   is_ai_generated?: boolean
   tags?: number[]
   page?: number
+}
+
+export interface RecipeReview {
+  id: number
+  user: number
+  username: string
+  recipe: number
+  rating: number
+  comment: string
+  created_at: string
+}
+
+export interface ReviewPayload {
+  rating: number
+  comment?: string
+}
+
+export interface GenerationUsage {
+  used: number
+  limit: number
+  remaining: number
+  subscription_type: 'free' | 'premium' | 'pro'
 }

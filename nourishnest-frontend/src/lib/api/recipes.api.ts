@@ -7,6 +7,9 @@ import type {
   LogMealPayload,
   ForkRecipePayload,
   RecipeFilters,
+  RecipeReview,
+  ReviewPayload,
+  GenerationUsage,
 } from '@/types/recipe.types'
 import type { PaginatedResponse } from '@/types/inventory.types'
 
@@ -59,6 +62,21 @@ export const recipesApi = {
 
   getMealHistory: async (): Promise<PaginatedResponse<MealLog>> => {
     const res = await apiClient.get('/recipes/history/')
+    return res.data
+  },
+
+  getReviews: async (id: number): Promise<RecipeReview[]> => {
+    const res = await apiClient.get(`/recipes/${id}/reviews/`)
+    return res.data
+  },
+
+  createReview: async (id: number, data: ReviewPayload): Promise<RecipeReview> => {
+    const res = await apiClient.post(`/recipes/${id}/reviews/`, data)
+    return res.data
+  },
+
+  getGenerationUsage: async (): Promise<GenerationUsage> => {
+    const res = await apiClient.get('/recipes/generation-usage/')
     return res.data
   },
 }

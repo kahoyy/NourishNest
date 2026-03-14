@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Third-party apps
+    'django_crontab',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -188,6 +189,14 @@ DAILY_GENERATION_LIMITS = {
     'premium': int(os.getenv('DAILY_LIMIT_PREMIUM', '50')),
     'pro': int(os.getenv('DAILY_LIMIT_PRO', '100')),
 }
+
+CRONJOBS = [
+    # Run at midnight every day: delete RecipeGenerationUsage records older than 30 days
+    ('0 0 * * *', 'django.core.management.call_command', ['cleanup_generation_usage']),
+]
+
+# Number of days to retain generation usage records (default 30)
+GENERATION_USAGE_RETENTION_DAYS = int(os.getenv('GENERATION_USAGE_RETENTION_DAYS', '30'))
 
 
 # Logging

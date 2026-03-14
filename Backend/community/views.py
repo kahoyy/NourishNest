@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Avg
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -21,7 +21,11 @@ class CommunityRecipeListView(generics.ListAPIView):
     serializer_class = RecipeListSerializer
 
     def get_queryset(self):
-        queryset = Recipe.objects.filter(is_public=True)
+        queryset = Recipe.objects.filter(is_public=True).annotate(
+            fork_count=Count('forks', distinct=True),
+            average_rating=Avg('reviews__rating'),
+            review_count=Count('reviews', distinct=True)
+        )
 
         tag_ids = self.request.query_params.getlist('tags')
         if tag_ids:
@@ -44,7 +48,11 @@ class CommunityRecipeListView(generics.ListAPIView):
 class CommunityRecipeDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
     serializer_class = RecipeSerializer
-    queryset = Recipe.objects.filter(is_public=True)
+    queryset = Recipe.objects.filter(is_public=True).annotate(
+        fork_count=Count('forks', distinct=True),
+        average_rating=Avg('reviews__rating'),
+        review_count=Count('reviews', distinct=True)
+    )
 
 
 class CommunityRecipeForkView(APIView):

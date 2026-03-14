@@ -14,6 +14,7 @@ import { useForkRecipe } from '@/hooks/useRecipes'
 import type { Recipe } from '@/types/recipe.types'
 
 const schema = z.object({
+  custom_ingredients: z.string().optional(),
   custom_instructions: z.string().optional(),
   notes: z.string().optional(),
 })
@@ -31,15 +32,20 @@ export function ForkRecipeDialog({ open, onOpenChange, recipe }: ForkRecipeDialo
 
   const { handleSubmit, register, formState: { isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { custom_instructions: recipe.instructions, notes: '' },
+    defaultValues: { 
+      custom_ingredients: recipe.ingredients_text.join('\n'),
+      custom_instructions: recipe.instructions, 
+      notes: '' 
+    },
   })
 
   const onSubmit = async (data: FormData) => {
     await forkMutation.mutateAsync({
       id: recipe.id,
       data: {
-        custom_ingredients: recipe.ingredients_text,
-        ...data,
+        custom_ingredients: data.custom_ingredients ? data.custom_ingredients.split('\n').filter(i => i.trim()) : [],
+        custom_instructions: data.custom_instructions,
+        notes: data.notes,
       },
     })
     onOpenChange(false)
@@ -52,6 +58,14 @@ export function ForkRecipeDialog({ open, onOpenChange, recipe }: ForkRecipeDialo
           <DialogTitle>Fork: {recipe.name}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="custom_ingredients">Custom ingredients (one per line)</Label>
+            <Textarea
+              id="custom_ingredients"
+              {...register('custom_ingredients')}
+              rows={4}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="custom_instructions">Custom instructions</Label>
             <Textarea

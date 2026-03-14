@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from inventory.serializers import DietaryTagSerializer
 from inventory.models import DietaryTag
-from .models import Recipe, RecipeFork, MealHistory
+from .models import Recipe, RecipeFork, MealHistory, RecipeReview
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -11,6 +11,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     tag_ids = serializers.PrimaryKeyRelatedField(many=True,queryset=DietaryTag.objects.all(),write_only=True,required=False,source='tags')
     total_time_minutes = serializers.IntegerField(read_only=True)
     created_by_username = serializers.CharField(source='created_by.username',read_only=True,allow_null=True)
+    fork_count = serializers.IntegerField(read_only=True, default=0)
+    average_rating = serializers.FloatField(read_only=True, default=0.0)
+    review_count = serializers.IntegerField(read_only=True, default=0)
     
     class Meta:
         model = Recipe
@@ -21,7 +24,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             'prep_time_minutes', 'cook_time_minutes', 'total_time_minutes',
             'servings', 'difficulty', 'is_public',
             'created_by', 'created_by_username',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at', 'fork_count',
+            'average_rating', 'review_count'
         ]
         read_only_fields = [
             'id', 'generated_by_llm', 'match_score',
@@ -33,6 +37,9 @@ class RecipeSerializer(serializers.ModelSerializer):
 class RecipeListSerializer(serializers.ModelSerializer):
     tags = DietaryTagSerializer(many=True, read_only=True)
     total_time_minutes = serializers.IntegerField(read_only=True)
+    fork_count = serializers.IntegerField(read_only=True, default=0)
+    average_rating = serializers.FloatField(read_only=True, default=0.0)
+    review_count = serializers.IntegerField(read_only=True, default=0)
     
     class Meta:
         model = Recipe
@@ -40,7 +47,8 @@ class RecipeListSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'tags',
             'match_score', 'total_time_minutes',
             'servings', 'difficulty', 'is_public',
-            'created_at'
+            'created_at', 'fork_count',
+            'average_rating', 'review_count'
         ]
 
 
@@ -99,3 +107,12 @@ class MealHistoryCreateSerializer(serializers.Serializer):
     notes = serializers.CharField(max_length=2000, required=False, allow_blank=True)
     used_inventory_only = serializers.BooleanField(default=True)
     savings_estimate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+
+
+class RecipeReviewSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = RecipeReview
+        fields = ['id', 'user', 'username', 'recipe', 'rating', 'comment', 'created_at']
+        read_only_fields = ['id', 'user', 'username', 'recipe', 'created_at']

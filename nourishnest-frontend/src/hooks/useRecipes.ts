@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { recipesApi } from '@/lib/api/recipes.api'
 import { queryKeys } from '@/lib/queryKeys'
-import type { RecipeFilters, GenerateRecipePayload, ForkRecipePayload } from '@/types/recipe.types'
+import type { RecipeFilters, GenerateRecipePayload, ForkRecipePayload, ReviewPayload } from '@/types/recipe.types'
 
 export function useRecipes(filters?: RecipeFilters) {
   return useQuery({
@@ -19,12 +19,21 @@ export function useRecipe(id: number) {
   })
 }
 
+export function useGenerationUsage() {
+  return useQuery({
+    queryKey: queryKeys.generationUsage(),
+    queryFn: recipesApi.getGenerationUsage,
+    staleTime: 30_000,
+  })
+}
+
 export function useGenerateRecipe() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: GenerateRecipePayload) => recipesApi.generateRecipe(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['recipes', 'list'] })
+      qc.invalidateQueries({ queryKey: queryKeys.generationUsage() })
     },
     onError: () => toast.error('Failed to generate recipe'),
   })
@@ -67,5 +76,29 @@ export function useFork(id: number) {
     queryKey: queryKeys.fork(id),
     queryFn: () => recipesApi.getFork(id),
     enabled: !!id,
+  })
+}
+
+export function useReviews(id: number) {
+  return useQuery({
+    queryKey: queryKeys.recipeReviews(id),
+    queryFn: () => recipesApi.getReviews(id),
+    enabled: !!id,
+  })
+}
+
+export function useCreateReview() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ReviewPayload }) =>
+      recipesApi.createReview(id, data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.recipeReviews(id) })
+      toast.success('Review posted successfully')
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to post review'
+      toast.error(msg)
+    },
   })
 }
