@@ -6,8 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TagSelect } from './TagSelect'
 import type { InventoryItem, CreateInventoryItemPayload } from '@/types/inventory.types'
+
+const UNITS = [
+  'g', 'kg', 'ml', 'L', 'oz', 'lbs', 'cups', 'tbsp', 'tsp', 'pieces',
+  'whole', 'slices', 'pinch', 'bunch', 'cans', 'boxes', 'bags', 'jars', 'bottles',
+  'cloves', 'sprigs', 'leaves', 'stalks', 'heads', 'packages'
+]
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -26,18 +33,9 @@ interface InventoryItemFormProps {
   isLoading?: boolean
 }
 
-function parseQuantity(qs?: string) {
-  if (!qs) return { q: 1, u: '' }
-  const match = qs.match(/^([\d.]+)\s*(.*)$/)
-  if (match) {
-    return { q: parseFloat(match[1]) || 1, u: match[2].trim() }
-  }
-  return { q: 1, u: qs }
-}
+
 
 export function InventoryItemForm({ item, onSubmit, isLoading }: InventoryItemFormProps) {
-  const initial = parseQuantity(item?.quantity)
-
   const {
     register,
     handleSubmit,
@@ -49,8 +47,8 @@ export function InventoryItemForm({ item, onSubmit, isLoading }: InventoryItemFo
     resolver: zodResolver(schema),
     defaultValues: {
       name: item?.name ?? '',
-      quantity: initial.q,
-      unit: initial.u,
+      quantity: item?.quantity ?? 1,
+      unit: item?.unit ?? 'pieces',
       perishable: item?.perishable ?? false,
       expiry_date: item?.expiry_date ?? null,
       tag_ids: item?.tags?.map((t) => t.id) ?? [],
@@ -59,11 +57,10 @@ export function InventoryItemForm({ item, onSubmit, isLoading }: InventoryItemFo
 
   useEffect(() => {
     if (item) {
-      const parsed = parseQuantity(item.quantity)
       reset({
         name: item.name,
-        quantity: parsed.q,
-        unit: parsed.u,
+        quantity: item.quantity,
+        unit: item.unit,
         perishable: item.perishable,
         expiry_date: item.expiry_date,
         tag_ids: item.tags.map((t) => t.id),
@@ -74,11 +71,7 @@ export function InventoryItemForm({ item, onSubmit, isLoading }: InventoryItemFo
   const perishable = watch('perishable')
 
   const onFormSubmit = (data: FormData) => {
-    const { quantity, unit, ...rest } = data
-    onSubmit({
-      ...rest,
-      quantity: `${quantity} ${unit}`.trim(),
-    })
+    onSubmit(data)
   }
 
   return (
@@ -97,7 +90,22 @@ export function InventoryItemForm({ item, onSubmit, isLoading }: InventoryItemFo
         </div>
         <div className="space-y-2">
           <Label htmlFor="unit">Unit</Label>
-          <Input id="unit" {...register('unit')} placeholder="e.g. kg, pieces" />
+          <Controller
+            control={control}
+            name="unit"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <SelectTrigger id="unit">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNITS.map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.unit && <p className="text-xs text-destructive">{errors.unit.message}</p>}
         </div>
       </div>

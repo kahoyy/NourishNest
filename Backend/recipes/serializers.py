@@ -46,6 +46,7 @@ class RecipeListSerializer(serializers.ModelSerializer):
 
 class RecipeGenerateSerializer(serializers.Serializer):
     use_inventory = serializers.BooleanField(default=True,help_text="Use items from user's inventory")
+    strict_inventory_only = serializers.BooleanField(default=False,help_text="Only use the provided inventory items")
     inventory_item_ids = serializers.ListField(child=serializers.IntegerField(),required=False,help_text="Specific inventory item IDs to use")
     inventory_item_quantities = serializers.DictField(
         child=serializers.CharField(max_length=100),

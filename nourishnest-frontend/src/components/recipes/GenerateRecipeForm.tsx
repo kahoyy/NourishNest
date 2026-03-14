@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm, Controller, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,12 +10,16 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Plus } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useGenerateRecipe } from '@/hooks/useRecipes'
-import { useInventoryItems } from '@/hooks/useInventory'
+import { useInventoryItems, useCreateInventoryItem } from '@/hooks/useInventory'
+import { InventoryItemForm } from '@/components/inventory/InventoryItemForm'
 
 const schema = z.object({
   use_inventory: z.boolean(),
+  strict_inventory_only: z.boolean().optional(),
   inventory_item_ids: z.array(z.number()),
   inventory_item_quantities: z.record(z.string(), z.string()),
   cuisine_preference: z.string().optional(),
@@ -27,7 +32,9 @@ type FormData = z.infer<typeof schema>
 
 export function GenerateRecipeForm() {
   const navigate = useNavigate()
+  const [dialogOpen, setDialogOpen] = useState(false)
   const generateMutation = useGenerateRecipe()
+  const createMutation = useCreateInventoryItem()
   const { data: inventoryData } = useInventoryItems()
   const inventoryItems = inventoryData?.results ?? []
 
@@ -35,6 +42,7 @@ export function GenerateRecipeForm() {
     resolver: zodResolver(schema),
     defaultValues: {
       use_inventory: true,
+      strict_inventory_only: false,
       inventory_item_ids: [],
       inventory_item_quantities: {},
       servings: 2,
@@ -70,6 +78,7 @@ export function GenerateRecipeForm() {
       const hasQuantities = Object.keys(data.inventory_item_quantities).length > 0
       const recipe = await generateMutation.mutateAsync({
         use_inventory: data.use_inventory,
+        strict_inventory_only: data.strict_inventory_only,
         inventory_item_ids: data.use_inventory ? data.inventory_item_ids : undefined,
         inventory_item_quantities:
           data.use_inventory && hasQuantities ? data.inventory_item_quantities : undefined,
@@ -118,58 +127,83 @@ export function GenerateRecipeForm() {
         <Label htmlFor="use-inventory">Use my pantry ingredients</Label>
       </div>
 
-      {/* Pantry item list with per-item quantity override */}
-      {useInventory && inventoryItems.length > 0 && (
-        <div className="space-y-2">
-          <Label>Select specific items (optional — leave blank to use all)</Label>
-          <div className="max-h-64 overflow-y-auto rounded border p-3 space-y-3">
-            {inventoryItems.map((item) => {
-              const isChecked = (selectedIds ?? []).includes(item.id)
-              const storedQty = item.quantity
-              return (
-                <div key={item.id} className="flex items-center gap-3">
-                  <Checkbox
-                    id={`item-${item.id}`}
-                    checked={isChecked}
-                    onCheckedChange={(checked) =>
-                      handleItemToggle(item.id, storedQty, !!checked)
-                    }
-                  />
-                  <label
-                    htmlFor={`item-${item.id}`}
-                    className="text-sm cursor-pointer flex-1 min-w-0 truncate"
-                  >
-                    {item.name}
-                    {!isChecked && (
-                      <span className="text-muted-foreground ml-1">({storedQty})</span>
-                    )}
-                  </label>
+      {useInventory && (
+        <div className="flex items-center gap-3 ml-6 mb-4">
+          <Controller
+            control={control}
+            name="strict_inventory_only"
+            render={({ field }) => (
+              <Switch checked={field.value} onCheckedChange={field.onChange} id="strict-inventory-only" />
+            )}
+          />
+          <Label htmlFor="strict-inventory-only">Strictly use only these items (no outside ingredients)</Label>
+        </div>
+      )}
 
-                  {isChecked && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-xs text-muted-foreground">Qty:</span>
-                      <Input
-                        className="h-7 w-28 text-sm px-2"
-                        value={(quantities ?? {})[String(item.id)] ?? storedQty}
-                        onChange={(e) => {
-                          setValue('inventory_item_quantities', {
-                            ...(quantities ?? {}),
-                            [String(item.id)]: e.target.value,
-                          })
-                        }}
-                        placeholder={storedQty}
-                        aria-label={`Quantity for ${item.name}`}
-                      />
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+      {/* Pantry item list with per-item quantity override */}
+      {useInventory && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>Select specific items (optional — leave blank to use all)</Label>
+            <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
           </div>
-          {(selectedIds ?? []).length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              You can adjust the quantity for each selected item above.
-            </p>
+          {inventoryItems.length > 0 ? (
+            <>
+              <div className="max-h-64 overflow-y-auto rounded border p-3 space-y-3">
+                {inventoryItems.map((item) => {
+                  const isChecked = (selectedIds ?? []).includes(item.id)
+                  const storedQty = item.quantity
+                  return (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <Checkbox
+                        id={`item-${item.id}`}
+                        checked={isChecked}
+                        onCheckedChange={(checked) =>
+                          handleItemToggle(item.id, String(storedQty), !!checked)
+                        }
+                      />
+                      <label
+                        htmlFor={`item-${item.id}`}
+                        className="text-sm cursor-pointer flex-1 min-w-0 truncate"
+                      >
+                        {item.name}
+                        {!isChecked && (
+                          <span className="text-muted-foreground ml-1">({storedQty} {item.unit})</span>
+                        )}
+                      </label>
+
+                      {isChecked && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-xs text-muted-foreground">Qty:</span>
+                          <Input
+                            className="h-7 w-28 text-sm px-2"
+                            value={(quantities ?? {})[String(item.id)] ?? storedQty}
+                            onChange={(e) => {
+                              setValue('inventory_item_quantities', {
+                                ...(quantities ?? {}),
+                                [String(item.id)]: e.target.value,
+                              })
+                            }}
+                            placeholder={String(storedQty)}
+                            aria-label={`Quantity for ${item.name}`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {(selectedIds ?? []).length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  You can adjust the quantity for each selected item above.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground italic border rounded p-4 text-center">Your pantry is empty.</p>
           )}
         </div>
       )}
@@ -229,6 +263,22 @@ export function GenerateRecipeForm() {
       <Button type="submit" size="lg" className="w-full">
         Generate Recipe
       </Button>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add item to pantry</DialogTitle>
+          </DialogHeader>
+          <InventoryItemForm
+            onSubmit={(data) => {
+              createMutation.mutate(data, {
+                onSuccess: () => setDialogOpen(false),
+              })
+            }}
+            isLoading={createMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </form>
   )
 }

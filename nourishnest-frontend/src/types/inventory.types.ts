@@ -6,7 +6,8 @@ export interface InventoryTag {
 export interface InventoryItem {
   id: number
   name: string
-  quantity: string
+  quantity: number
+  unit: string
   perishable: boolean
   expiry_date: string | null
   tags: InventoryTag[]
@@ -16,7 +17,8 @@ export interface InventoryItem {
 
 export interface CreateInventoryItemPayload {
   name: string
-  quantity: string
+  quantity: number
+  unit: string
   perishable: boolean
   expiry_date?: string | null
   tag_ids?: number[]

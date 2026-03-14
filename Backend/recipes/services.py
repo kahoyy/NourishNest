@@ -28,6 +28,9 @@ def build_recipe_prompt(inventory_items: list, health_profile: dict, options: di
     max_time = options.get('max_prep_time', '')
     servings = options.get('servings', 2)
     additional = options.get('additional_instructions', '')
+    strict_only = options.get('strict_inventory_only', False)
+    strict_instruction = "\n- STRICT INGREDIENT REQUIREMENT: You MUST ONLY use the ingredients provided in the AVAILABLE INGREDIENTS list. Do NOT suggest or include any outside ingredients whatsoever." if strict_only else "\nYou may suggest 1-2 additional common pantry items if needed."
+    
     prompt = f"""You are a professional chef and nutritionist. Create a recipe using the following ingredients from the user's inventory.
 
 AVAILABLE INGREDIENTS:
@@ -42,7 +45,7 @@ REQUIREMENTS:
 {f'- Additional requests: {additional}' if additional else ''}
 - Do not include any ingredients or tags that conflict with allergies or dietary restrictions. If unsure, exclude the item.
 
-Create a delicious, healthy recipe. You may suggest 1-2 additional common pantry items if needed.
+Create a delicious, healthy recipe.{strict_instruction}
 
 Respond with a JSON object in this exact format:
 {{

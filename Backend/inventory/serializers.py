@@ -17,7 +17,7 @@ class InventoryItemSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = InventoryItem
-        fields = ['id', 'name', 'quantity', 'perishable', 'expiry_date','tags', 'tag_ids', 'notes', 'is_expired','created_at', 'updated_at']
+        fields = ['id', 'name', 'quantity', 'unit', 'perishable', 'expiry_date','tags', 'tag_ids', 'notes', 'is_expired','created_at', 'updated_at']
         read_only_fields = ['id', 'is_expired', 'created_at', 'updated_at']
     
     def validate_expiry_date(self, value):
@@ -32,7 +32,7 @@ class InventoryItemCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = InventoryItem
-        fields = ['name', 'quantity', 'perishable', 'expiry_date','tag_ids', 'notes']
+        fields = ['name', 'quantity', 'unit', 'perishable', 'expiry_date','tag_ids', 'notes']
     
     def create(self, validated_data):
         tags = validated_data.pop('tags', [])

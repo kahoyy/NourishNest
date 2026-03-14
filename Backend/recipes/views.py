@@ -75,6 +75,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'max_prep_time': data.get('max_prep_time'),
             'servings': data.get('servings', 2),
             'additional_instructions': data.get('additional_instructions', ''),
+            'strict_inventory_only': data.get('strict_inventory_only', False),
         }
 
         result = generate_recipe_sync(inventory_data, health_profile, options)
@@ -176,7 +177,30 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer = MealHistoryCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        import re
         history = MealHistory.objects.create(user=request.user,recipe=recipe,**serializer.validated_data,)
+
+        if history.used_inventory_only:
+            inventory_items = list(InventoryItem.objects.filter(user=request.user))
+            for ingredient in recipe.ingredients_text:
+                ingredient_lower = ingredient.lower()
+                for inv_item in inventory_items:
+                    if inv_item.name.lower() in ingredient_lower:
+                        match = re.match(r'^([\d\.]+)', ingredient.strip())
+                        qty_to_reduce = 1.0
+                        if match:
+                            try:
+                                qty_to_reduce = float(match.group(1))
+                            except ValueError:
+                                pass
+                        
+                        inv_item.quantity -= float(qty_to_reduce)
+                        if inv_item.quantity <= 0:
+                            inv_item.delete()
+                            inventory_items.remove(inv_item)
+                        else:
+                            inv_item.save()
+                        break
 
         from users.services import calculate_meal_points
         points_earned = calculate_meal_points(used_inventory_only=history.used_inventory_only,rating=history.rating,savings_estimate=history.savings_estimate,)

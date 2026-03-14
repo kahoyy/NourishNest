@@ -53,6 +53,7 @@ export interface GenerateRecipePayload {
   max_prep_time?: number
   servings?: number
   additional_instructions?: string
+  strict_inventory_only?: boolean
 }
 
 export interface LogMealPayload {

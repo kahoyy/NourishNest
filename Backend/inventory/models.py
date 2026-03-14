@@ -15,9 +15,21 @@ class DietaryTag(models.Model):
 
 
 class InventoryItem(models.Model):
+    UNIT_CHOICES = [
+        ('g', 'g'), ('kg', 'kg'), ('ml', 'ml'), ('L', 'L'),
+        ('oz', 'oz'), ('lbs', 'lbs'), ('cups', 'cups'),
+        ('tbsp', 'tbsp'), ('tsp', 'tsp'), ('pieces', 'pieces'),
+        ('whole', 'whole'), ('slices', 'slices'), ('pinch', 'pinch'),
+        ('bunch', 'bunch'), ('cans', 'cans'), ('boxes', 'boxes'),
+        ('bags', 'bags'), ('jars', 'jars'), ('bottles', 'bottles'),
+        ('cloves', 'cloves'), ('sprigs', 'sprigs'), ('leaves', 'leaves'),
+        ('stalks', 'stalks'), ('heads', 'heads'), ('packages', 'packages')
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='inventory_items')
     name = models.CharField(max_length=200)
-    quantity = models.CharField(max_length=100,help_text="Quantity with unit (e.g., '500g', '2 cups', '1 dozen')")
+    quantity = models.FloatField(default=1.0)
+    unit = models.CharField(max_length=20, choices=UNIT_CHOICES, default='pieces')
     perishable = models.BooleanField(default=True)
     expiry_date = models.DateField(null=True, blank=True)
     tags = models.ManyToManyField(DietaryTag,blank=True,related_name='inventory_items')

@@ -51,7 +51,7 @@ export function InventoryTable({ items, onEdit }: InventoryTableProps) {
               <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
                 <td className="px-4 py-3 font-medium">{item.name}</td>
                 <td className="px-4 py-3">
-                  {item.quantity}
+                  {item.quantity} {item.unit}
                 </td>
                 <td className="px-4 py-3">
                   {item.perishable ? (

@@ -21,7 +21,14 @@ const schema = z.object({
   rating: z.number().min(1).max(5).optional(),
   notes: z.string().optional(),
   used_inventory_only: z.boolean(),
-  savings_estimate: z.number().min(0).optional(),
+  savings_estimate: z.preprocess(
+    (val) => {
+      if (val === '' || val === undefined || val === null) return undefined;
+      const parsed = Number(val);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    },
+    z.number().min(0).optional()
+  ),
 })
 
 type FormData = z.infer<typeof schema>
